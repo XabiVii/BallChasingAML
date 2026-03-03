@@ -180,10 +180,10 @@ def main():
                 top_n=TOP_N
             )
 
-            vc2 = print_distribution(s_norm, f"{col} (AGRUPADO sin divisiones)", top_n=TOP_N, dropna=DROPNA)
+            vc2 = print_distribution(s_norm, f"{col} (grouped no divisions)", top_n=TOP_N, dropna=DROPNA)
             plot_distribution(
                 vc2,
-                title=f"{col} (AGRUPADO sin divisiones) — Top {TOP_N}",
+                title=f"{col} (grouped no divisions)",
                 out_path=os.path.join(PLOTS_DIR, f"{safe_filename(col)}_grouped.png"),
                 top_n=TOP_N
             )
