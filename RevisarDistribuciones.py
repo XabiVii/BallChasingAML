@@ -1,15 +1,21 @@
 # inspect_distributions_selected_cols_grouped_ranks_with_plots.py
+# inspect_distributions_selected_cols_grouped_ranks_with_plots.py
 # - Lee el CSV
+# - AGRUPA ranks quitando "Division X" y normalizando (Diamond I -> Diamante 1, etc.)
+# - Muestra distribuciones en texto
+# - CREA PLOTS (barras) para cada distribución y los guarda en ./plots_distributions
 # - AGRUPA ranks quitando "Division X" y normalizando (Diamond I -> Diamante 1, etc.)
 # - Muestra distribuciones en texto
 # - CREA PLOTS (barras) para cada distribución y los guarda en ./plots_distributions
 #
 # Ejecuta:
 #   python inspect_distributions_selected_cols_grouped_ranks_with_plots.py
+#   python inspect_distributions_selected_cols_grouped_ranks_with_plots.py
 
 import os
 import re
 import pandas as pd
+import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt
 
 # =========================
@@ -31,8 +37,11 @@ TRANSLATE_DIAMOND_TO_SPANISH = True
 
 PLOTS_DIR = "plots_distributions"  # carpeta de salida
 FIG_DPI = 160
+PLOTS_DIR = "plots_distributions"  # carpeta de salida
+FIG_DPI = 160
 
 # =========================
+# HELPERS (normalización ranks)
 # HELPERS (normalización ranks)
 # =========================
 ROMAN_TO_INT = {
@@ -66,9 +75,11 @@ def normalize_rank_text(x) -> str:
     s = normalize_spaces(str(x))
 
     # 1) quitar "Division X"
+    # 1) quitar "Division X"
     s = DIVISION_SUFFIX_RE.sub("", s)
     s = normalize_spaces(s)
 
+    # 2) roman -> int
     # 2) roman -> int
     def _roman_repl(m):
         rank_word = m.group(1)
@@ -80,11 +91,20 @@ def normalize_rank_text(x) -> str:
     s = normalize_spaces(s)
 
     # 3) traducir Diamond -> Diamante
+    # 3) traducir Diamond -> Diamante
     if TRANSLATE_DIAMOND_TO_SPANISH:
         s = re.sub(r"\bDiamond\b", "Diamante", s, flags=re.IGNORECASE)
         s = re.sub(r"\bdiamante\b", "Diamante", s)
 
     return s
+
+# =========================
+# TEXT + PLOTS
+# =========================
+def safe_filename(name: str) -> str:
+    name = name.replace("/", "_").replace("\\", "_").replace(" ", "_")
+    name = re.sub(r"[^a-zA-Z0-9_.\-]+", "_", name)
+    return name[:180]
 
 # =========================
 # TEXT + PLOTS
@@ -107,6 +127,7 @@ def print_distribution(series: pd.Series, name: str, top_n: int = 30, dropna: bo
 
     if vc.empty:
         print("(Sin valores para mostrar)")
+        return vc
         return vc
 
     head = vc.head(top_n)
@@ -145,9 +166,35 @@ def plot_distribution(vc: pd.Series, title: str, out_path: str, top_n: int = 30)
     plt.savefig(out_path, dpi=FIG_DPI)
     plt.close()
 
+    return vc
+
+def plot_distribution(vc: pd.Series, title: str, out_path: str, top_n: int = 30):
+    if vc is None or vc.empty:
+        return
+
+    # preparar data para plot (top_n + REST opcional)
+    vc_top = vc.head(top_n).copy()
+    if len(vc) > top_n:
+        rest = vc.iloc[top_n:].sum()
+        vc_top.loc["__REST__"] = rest
+
+    labels = [("<NaN>" if pd.isna(x) else str(x)) for x in vc_top.index.tolist()]
+    counts = vc_top.values.tolist()
+
+    plt.figure(figsize=(12, 6))
+    plt.bar(range(len(counts)), counts)
+    plt.xticks(range(len(counts)), labels, rotation=90)
+    plt.ylabel("Count")
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=FIG_DPI)
+    plt.close()
+
 def main():
     if not os.path.exists(CSV_PATH):
         raise FileNotFoundError(f"No existe el archivo: {CSV_PATH}")
+
+    os.makedirs(PLOTS_DIR, exist_ok=True)
 
     os.makedirs(PLOTS_DIR, exist_ok=True)
 
@@ -169,6 +216,7 @@ def main():
         s = df[col]
 
         # ranks: plot original + agrupado
+        # ranks: plot original + agrupado
         if col in ("min_rank.name", "max_rank.name"):
             s_norm = s.apply(normalize_rank_text)
 
@@ -188,6 +236,15 @@ def main():
                 top_n=TOP_N
             )
         else:
+            vc = print_distribution(s, col, top_n=TOP_N, dropna=DROPNA)
+            plot_distribution(
+                vc,
+                title=f"{col} — Top {TOP_N}",
+                out_path=os.path.join(PLOTS_DIR, f"{safe_filename(col)}.png"),
+                top_n=TOP_N
+            )
+
+    print(f"\n✅ PLOTS guardados en: {os.path.abspath(PLOTS_DIR)}")
             vc = print_distribution(s, col, top_n=TOP_N, dropna=DROPNA)
             plot_distribution(
                 vc,

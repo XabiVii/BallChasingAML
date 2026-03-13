@@ -15,7 +15,7 @@ replays = api.get_replays(
   deep=True  # Get full data including player stats
 )
 
-MAX_PRINT = 10000  # durante pruebas, imprime solo los primeros N replays
+MAX_PRINT = 1  # durante pruebas, imprime solo los primeros N replays
 MAX_DEPTH = 200
 MAX_ITEMS = 200
 
