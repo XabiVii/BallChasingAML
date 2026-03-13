@@ -1,19 +1,16 @@
-# inspect_distributions_selected_cols_grouped_ranks.py
+# inspect_distributions_selected_cols_grouped_ranks_with_plots.py
 # - Lee el CSV
-# - AGRUPA los ranks quitando la "Division X" y normalizando:
-#     "Diamante 1 Division 1/2/3/4" -> "Diamante 1"
-#     "Champion 2 Division 1/2/3/4" -> "Champion 2"
-#   (funciona también con "Diamond I Division I", etc.)
-# - Muestra la distribución de:
-#     server.region, min_rank.name, max_rank.name, blue.players.1.id.platform
+# - AGRUPA ranks quitando "Division X" y normalizando (Diamond I -> Diamante 1, etc.)
+# - Muestra distribuciones en texto
+# - CREA PLOTS (barras) para cada distribución y los guarda en ./plots_distributions
 #
 # Ejecuta:
-#   python inspect_distributions_selected_cols_grouped_ranks.py
+#   python inspect_distributions_selected_cols_grouped_ranks_with_plots.py
 
 import os
 import re
 import pandas as pd
-
+import matplotlib.pyplot as plt
 
 # =========================
 # CONFIG
@@ -30,14 +27,13 @@ COLUMNS_TO_CHECK = [
 TOP_N = 30
 DROPNA = False                   # False = incluye NaN como categoría
 NORMALIZE_EMPTY_STRINGS = True   # "" o "   " -> NA
-
-# Traducción mínima (según lo que pediste):
-# "Diamond 1" -> "Diamante 1" (Champion se deja como Champion)
 TRANSLATE_DIAMOND_TO_SPANISH = True
 
+PLOTS_DIR = "plots_distributions"  # carpeta de salida
+FIG_DPI = 160
 
 # =========================
-# HELPERS
+# HELPERS (normalización ranks)
 # =========================
 ROMAN_TO_INT = {
     "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5,
@@ -49,7 +45,6 @@ DIVISION_SUFFIX_RE = re.compile(
     flags=re.IGNORECASE
 )
 
-# Convierte el numeral del rango (I/II/III) en 1/2/3 si aparece tras la palabra de rango
 RANK_ROMAN_RE = re.compile(
     r"\b(Grand\s+Champion|Gran\s+Campe[oó]n|Diamond|Diamante|Champion|Campe[oó]n)\s+(I|II|III|IV|V|VI|VII|VIII|IX|X)\b",
     flags=re.IGNORECASE
@@ -65,41 +60,39 @@ def normalize_spaces(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 def normalize_rank_text(x) -> str:
-    """
-    Ejemplos que cubre:
-      - "Diamante 1 Division 1" -> "Diamante 1"
-      - "Champion 2 Division 4" -> "Champion 2"
-      - "Diamond I Division III" -> "Diamond 1"
-      - "Champion II Division I" -> "Champion 2"
-    """
     if pd.isna(x):
         return x
 
     s = normalize_spaces(str(x))
 
-    # 1) Quitar sufijo de división (Division/División/Div.)
+    # 1) quitar "Division X"
     s = DIVISION_SUFFIX_RE.sub("", s)
     s = normalize_spaces(s)
 
-    # 2) Convertir romano del rango (Diamond I -> Diamond 1, Champion II -> Champion 2, etc.)
+    # 2) roman -> int
     def _roman_repl(m):
         rank_word = m.group(1)
         roman = m.group(2).upper()
         n = ROMAN_TO_INT.get(roman, roman)
-        # conservar el texto de rank tal cual venía, pero con número
         return f"{rank_word} {n}"
 
     s = RANK_ROMAN_RE.sub(_roman_repl, s)
     s = normalize_spaces(s)
 
-    # 3) Si ya viene como "Diamante 1", perfecto. Si viene "Diamond 1" y quieres español:
+    # 3) traducir Diamond -> Diamante
     if TRANSLATE_DIAMOND_TO_SPANISH:
-        # reemplazo seguro de palabra completa
         s = re.sub(r"\bDiamond\b", "Diamante", s, flags=re.IGNORECASE)
-        # opcional: capitalizar "Diamante"
         s = re.sub(r"\bdiamante\b", "Diamante", s)
 
     return s
+
+# =========================
+# TEXT + PLOTS
+# =========================
+def safe_filename(name: str) -> str:
+    name = name.replace("/", "_").replace("\\", "_").replace(" ", "_")
+    name = re.sub(r"[^a-zA-Z0-9_.\-]+", "_", name)
+    return name[:180]
 
 def print_distribution(series: pd.Series, name: str, top_n: int = 30, dropna: bool = False):
     vc = series.value_counts(dropna=dropna)
@@ -114,7 +107,7 @@ def print_distribution(series: pd.Series, name: str, top_n: int = 30, dropna: bo
 
     if vc.empty:
         print("(Sin valores para mostrar)")
-        return
+        return vc
 
     head = vc.head(top_n)
     for k, v in head.items():
@@ -128,16 +121,41 @@ def print_distribution(series: pd.Series, name: str, top_n: int = 30, dropna: bo
         print("-" * 70)
         print(f"{'__REST__':45}  {rest:10,d}  ({pct_rest:6.2f}%)")
 
+    return vc
+
+def plot_distribution(vc: pd.Series, title: str, out_path: str, top_n: int = 30):
+    if vc is None or vc.empty:
+        return
+
+    # preparar data para plot (top_n + REST opcional)
+    vc_top = vc.head(top_n).copy()
+    if len(vc) > top_n:
+        rest = vc.iloc[top_n:].sum()
+        vc_top.loc["__REST__"] = rest
+
+    labels = [("<NaN>" if pd.isna(x) else str(x)) for x in vc_top.index.tolist()]
+    counts = vc_top.values.tolist()
+
+    plt.figure(figsize=(12, 6))
+    plt.bar(range(len(counts)), counts)
+    plt.xticks(range(len(counts)), labels, rotation=90)
+    plt.ylabel("Count")
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=FIG_DPI)
+    plt.close()
+
 def main():
     if not os.path.exists(CSV_PATH):
         raise FileNotFoundError(f"No existe el archivo: {CSV_PATH}")
+
+    os.makedirs(PLOTS_DIR, exist_ok=True)
 
     df = read_csv_safely(CSV_PATH)
 
     if NORMALIZE_EMPTY_STRINGS:
         df = df.replace(r"^\s*$", pd.NA, regex=True)
 
-    # Distribuciones, con normalización solo en las columnas de rank
     for col in COLUMNS_TO_CHECK:
         if col not in df.columns:
             print(f"\n❌ Columna no encontrada: {col}")
@@ -150,13 +168,35 @@ def main():
 
         s = df[col]
 
+        # ranks: plot original + agrupado
         if col in ("min_rank.name", "max_rank.name"):
             s_norm = s.apply(normalize_rank_text)
-            # Muestra ambas distribuciones: original y agrupada
-            print_distribution(s, f"{col} (original)", top_n=TOP_N, dropna=DROPNA)
-            print_distribution(s_norm, f"{col} (AGRUPADO sin divisiones)", top_n=TOP_N, dropna=DROPNA)
+
+            vc1 = print_distribution(s, f"{col} (original)", top_n=TOP_N, dropna=DROPNA)
+            plot_distribution(
+                vc1,
+                title=f"{col} (original) — Top {TOP_N}",
+                out_path=os.path.join(PLOTS_DIR, f"{safe_filename(col)}_original.png"),
+                top_n=TOP_N
+            )
+
+            vc2 = print_distribution(s_norm, f"{col} (Grouped without divisions)", top_n=TOP_N, dropna=DROPNA)
+            plot_distribution(
+                vc2,
+                title=f"{col} (Grouped without divisions) — Top {TOP_N}",
+                out_path=os.path.join(PLOTS_DIR, f"{safe_filename(col)}_grouped.png"),
+                top_n=TOP_N
+            )
         else:
-            print_distribution(s, col, top_n=TOP_N, dropna=DROPNA)
+            vc = print_distribution(s, col, top_n=TOP_N, dropna=DROPNA)
+            plot_distribution(
+                vc,
+                title=f"{col} — Top {TOP_N}",
+                out_path=os.path.join(PLOTS_DIR, f"{safe_filename(col)}.png"),
+                top_n=TOP_N
+            )
+
+    print(f"\n✅ PLOTS guardados en: {os.path.abspath(PLOTS_DIR)}")
 
 if __name__ == "__main__":
     main()
