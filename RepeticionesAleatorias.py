@@ -13,8 +13,11 @@ TOKEN = os.environ["BALLCHASING_TOKEN"]
 api = ballchasing.Api(TOKEN, print_on_rate_limit=True)
 
 COUNT = 10_000
-OUT_CSV = "replays_2v2_10000_full.csv"
-TMP_JSONL = "tmp_replays_flat_full.jsonl"
+DATASETS_DIR = "datasets"
+OUT_CSV = os.path.join(DATASETS_DIR, "replays_2v2_10000_full.csv")
+TMP_JSONL = os.path.join(DATASETS_DIR, "tmp_replays_flat_full.jsonl")
+
+os.makedirs(DATASETS_DIR, exist_ok=True)
 
 # =========================
 # FLATTEN TOTAL (sin recortes)

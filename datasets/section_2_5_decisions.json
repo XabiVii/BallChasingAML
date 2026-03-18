@@ -1,0 +1,112 @@
+{
+  "overtime_seconds": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "orange.players.1.stats.positioning.goals_against_while_last_defender": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "blue.players.1.stats.positioning.goals_against_while_last_defender": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "orange.players.0.stats.positioning.goals_against_while_last_defender": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "blue.players.0.stats.positioning.goals_against_while_last_defender": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "orange.players.0.name": {
+    "action": "impute",
+    "strategy": "missing_literal",
+    "value": "MISSING"
+  },
+  "blue.players.0.name": {
+    "action": "impute",
+    "strategy": "missing_literal",
+    "value": "MISSING"
+  },
+  "blue.players.1.name": {
+    "action": "impute",
+    "strategy": "missing_literal",
+    "value": "MISSING"
+  },
+  "orange.players.1.name": {
+    "action": "impute",
+    "strategy": "missing_literal",
+    "value": "MISSING"
+  },
+  "blue.stats.ball.possession_time": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "orange.stats.ball.possession_time": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "orange.players.1.stats.positioning.percent_most_forward": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "orange.players.1.stats.positioning.percent_closest_to_ball": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "orange.stats.ball.time_in_side": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "blue.players.1.stats.positioning.percent_farthest_from_ball": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "blue.players.1.stats.positioning.percent_closest_to_ball": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "blue.players.1.stats.positioning.percent_most_back": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "blue.players.1.stats.positioning.percent_most_forward": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "blue.stats.ball.time_in_side": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "orange.players.0.stats.positioning.percent_most_back": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "orange.players.1.stats.positioning.percent_farthest_from_ball": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  },
+  "orange.players.1.stats.positioning.percent_most_back": {
+    "action": "impute",
+    "strategy": "zero",
+    "value": 0.0
+  }
+}
