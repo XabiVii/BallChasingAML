@@ -1,3 +1,4 @@
 *.jsonl
 data/
 plots_distributions/
+.DS_Store
